@@ -20,7 +20,7 @@ type DataLoader interface {
 	ListRuns(ctx context.Context, experimentID string) ([]string, error)
 	GetEnvironment(ctx context.Context, experimentID string) (types.Environment, error)
 	GetPluginTags(ctx context.Context, experimentID string, pluginName string) (types.PluginRunTags, error)
-	GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string) (interface{}, error)
+	GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string, query types.PluginQuery) (interface{}, error)
 }
 
 // PluginLoader describes the interface for the plugin loader
@@ -106,8 +106,16 @@ func (h *Handler) handlePluginTags(w http.ResponseWriter, r *http.Request) error
 func (h *Handler) handlePluginData(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 
+	pq := types.PluginQuery{}
+
+	q := r.URL.Query()
+
+	for key, val := range q {
+		pq[key] = val[0]
+	}
+
 	data, err := h.dataLoader.GetPluginData(
-		r.Context(), vars["experimentID"], vars["pluginName"], vars["data"])
+		r.Context(), vars["experimentID"], vars["pluginName"], vars["data"], pq)
 	if err != nil {
 		return err
 	}

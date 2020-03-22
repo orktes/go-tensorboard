@@ -41,22 +41,29 @@ func (mdl *mockDataloader) GetPluginTags(ctx context.Context, experimentID strin
 	}, nil
 }
 
-func (mdl *mockDataloader) GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string) (interface{}, error) {
+func (mdl *mockDataloader) GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string, query types.PluginQuery) (interface{}, error) {
+	run := query["run"]
+	multiplier := 1
+
+	if run == "test2" {
+		multiplier = 2
+	}
+
 	return []scalars.ScalarValue{
 		scalars.ScalarValue{
 			WallTime: time.Now(),
 			Step:     1,
-			Value:    1,
+			Value:    float64(multiplier * 1),
 		},
 		scalars.ScalarValue{
 			WallTime: time.Now().Add(time.Second),
 			Step:     2,
-			Value:    3,
+			Value:    float64(multiplier * 3),
 		},
 		scalars.ScalarValue{
 			WallTime: time.Now().Add(2 * time.Second),
 			Step:     3,
-			Value:    4,
+			Value:    float64(multiplier * 4),
 		},
 	}, nil
 }
