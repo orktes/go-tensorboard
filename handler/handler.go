@@ -17,10 +17,10 @@ import (
 
 // DataLoader describes the interface for dataloader
 type DataLoader interface {
-	ListRuns(ctx context.Context, experimentID string) ([]string, error)
-	GetEnvironment(ctx context.Context, experimentID string) (types.Environment, error)
-	GetPluginTags(ctx context.Context, experimentID string, pluginName string) (types.PluginRunTags, error)
-	GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string, query types.PluginQuery) (interface{}, error)
+	ListRuns(ctx context.Context) ([]string, error)
+	GetEnvironment(ctx context.Context) (types.Environment, error)
+	GetPluginTags(ctx context.Context, pluginName string) (types.PluginRunTags, error)
+	GetPluginData(ctx context.Context, pluginName string, resource string, query types.PluginQuery) (interface{}, error)
 }
 
 // PluginLoader describes the interface for the plugin loader
@@ -72,9 +72,7 @@ func (h *Handler) handlePluginListing(w http.ResponseWriter, r *http.Request) er
 }
 
 func (h *Handler) handleEnvironment(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-
-	env, err := h.dataLoader.GetEnvironment(r.Context(), vars["experimentID"])
+	env, err := h.dataLoader.GetEnvironment(r.Context())
 	if err != nil {
 		return err
 	}
@@ -82,9 +80,7 @@ func (h *Handler) handleEnvironment(w http.ResponseWriter, r *http.Request) erro
 }
 
 func (h *Handler) handleRuns(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-
-	runs, err := h.dataLoader.ListRuns(r.Context(), vars["experimentID"])
+	runs, err := h.dataLoader.ListRuns(r.Context())
 	if err != nil {
 		return err
 	}
@@ -95,7 +91,7 @@ func (h *Handler) handleRuns(w http.ResponseWriter, r *http.Request) error {
 func (h *Handler) handlePluginTags(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 
-	tags, err := h.dataLoader.GetPluginTags(r.Context(), vars["experimentID"], vars["pluginName"])
+	tags, err := h.dataLoader.GetPluginTags(r.Context(), vars["pluginName"])
 	if err != nil {
 		return err
 	}
@@ -115,7 +111,7 @@ func (h *Handler) handlePluginData(w http.ResponseWriter, r *http.Request) error
 	}
 
 	data, err := h.dataLoader.GetPluginData(
-		r.Context(), vars["experimentID"], vars["pluginName"], vars["data"], pq)
+		r.Context(), vars["pluginName"], vars["data"], pq)
 	if err != nil {
 		return err
 	}
@@ -152,12 +148,12 @@ func (h *Handler) e(hf func(w http.ResponseWriter, r *http.Request) error) func(
 }
 
 func (h *Handler) initRoutes() {
-	h.HandleFunc("/{experimentID}/data/logdir", h.handleLogDir)
-	h.HandleFunc("/{experimentID}/data/plugins_listing", h.e(h.handlePluginListing))
-	h.HandleFunc("/{experimentID}/data/environment", h.e(h.handleEnvironment))
-	h.HandleFunc("/{experimentID}/data/runs", h.e(h.handleRuns))
-	h.HandleFunc("/{experimentID}/data/experiments", h.e(h.handleExperiments))
-	h.HandleFunc("/{experimentID}/data/plugin/{pluginName}/tags", h.e(h.handlePluginTags))
-	h.HandleFunc("/{experimentID}/data/plugin/{pluginName}/{data}", h.e(h.handlePluginData))
-	h.PathPrefix("/{experimentID}/").HandlerFunc(h.handleUI)
+	h.HandleFunc("/data/logdir", h.handleLogDir)
+	h.HandleFunc("/data/plugins_listing", h.e(h.handlePluginListing))
+	h.HandleFunc("/data/environment", h.e(h.handleEnvironment))
+	h.HandleFunc("/data/runs", h.e(h.handleRuns))
+	h.HandleFunc("/data/experiments", h.e(h.handleExperiments))
+	h.HandleFunc("/data/plugin/{pluginName}/tags", h.e(h.handlePluginTags))
+	h.HandleFunc("/data/plugin/{pluginName}/{data}", h.e(h.handlePluginData))
+	h.PathPrefix("/").Handler(h.fileServer)
 }

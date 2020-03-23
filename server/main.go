@@ -16,21 +16,21 @@ import (
 type mockDataloader struct {
 }
 
-func (mdl *mockDataloader) ListRuns(ctx context.Context, experimentID string) ([]string, error) {
+func (mdl *mockDataloader) ListRuns(ctx context.Context) ([]string, error) {
 	return []string{"test1", "test2"}, nil
 }
 
-func (mdl *mockDataloader) GetEnvironment(ctx context.Context, experimentID string) (types.Environment, error) {
+func (mdl *mockDataloader) GetEnvironment(ctx context.Context) (types.Environment, error) {
 	return types.Environment{
-		WindowTime:            fmt.Sprintf("Experiment %s", experimentID),
-		DataLocation:          fmt.Sprintf("Experiment %s", experimentID),
-		ExperimentName:        fmt.Sprintf("Experiment %s", experimentID),
-		ExperimentDescription: fmt.Sprintf("Experiment %s", experimentID),
+		WindowTime:            "Experiment",
+		DataLocation:          "Experiment",
+		ExperimentName:        "Experiment",
+		ExperimentDescription: "Experiment",
 		CreationTime:          int(time.Now().Unix()),
 	}, nil
 }
 
-func (mdl *mockDataloader) GetPluginTags(ctx context.Context, experimentID string, pluginName string) (types.PluginRunTags, error) {
+func (mdl *mockDataloader) GetPluginTags(ctx context.Context, pluginName string) (types.PluginRunTags, error) {
 	return types.PluginRunTags{
 		"test1": types.PluginTags{
 			"accuracy/accuracy": map[string]interface{}{"displayName": "accuracy/accuracy", "description": "Model accuracy"},
@@ -41,7 +41,7 @@ func (mdl *mockDataloader) GetPluginTags(ctx context.Context, experimentID strin
 	}, nil
 }
 
-func (mdl *mockDataloader) GetPluginData(ctx context.Context, experimentID string, pluginName string, resource string, query types.PluginQuery) (interface{}, error) {
+func (mdl *mockDataloader) GetPluginData(ctx context.Context, pluginName string, resource string, query types.PluginQuery) (interface{}, error) {
 	run := query["run"]
 	multiplier := 1
 
@@ -72,7 +72,7 @@ func main() {
 	h := handler.New(&mockDataloader{}, plugins.DefaultRegistry)
 	http.Handle("/", h)
 
-	fmt.Println("Starting in :8080. Visit http://localhost:8080/experiment1/")
+	fmt.Println("Starting in :8080. Visit http://localhost:8080/")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
