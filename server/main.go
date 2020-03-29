@@ -5,19 +5,24 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"time"
 
+	"github.com/orktes/go-tensorboard/events"
 	"github.com/orktes/go-tensorboard/handler"
 	"github.com/orktes/go-tensorboard/plugins"
-	"github.com/orktes/go-tensorboard/plugins/scalars"
+	"github.com/orktes/go-tensorboard/store"
 	"github.com/orktes/go-tensorboard/types"
 )
 
 type mockDataloader struct {
+	store *store.InMemStore
 }
 
 func (mdl *mockDataloader) ListRuns(ctx context.Context) ([]string, error) {
-	return []string{"test1", "test2"}, nil
+	return []string{"default"}, nil
 }
 
 func (mdl *mockDataloader) GetEnvironment(ctx context.Context) (types.Environment, error) {
@@ -31,45 +36,52 @@ func (mdl *mockDataloader) GetEnvironment(ctx context.Context) (types.Environmen
 }
 
 func (mdl *mockDataloader) GetPluginTags(ctx context.Context, pluginName string) (types.PluginRunTags, error) {
+	tags, err := mdl.store.GetPluginTags(ctx, pluginName)
+	if err != nil {
+		return nil, err
+	}
 	return types.PluginRunTags{
-		"test1": types.PluginTags{
-			"accuracy/accuracy": map[string]interface{}{"displayName": "accuracy/accuracy", "description": "Model accuracy"},
-		},
-		"test2": types.PluginTags{
-			"accuracy/accuracy": map[string]interface{}{"displayName": "accuracy/accuracy", "description": "Model accuracy"},
-		},
+		"default": tags,
 	}, nil
 }
 
 func (mdl *mockDataloader) GetPluginData(ctx context.Context, pluginName string, resource string, query types.PluginQuery) (interface{}, error) {
-	run := query["run"]
-	multiplier := 1
-
-	if run == "test2" {
-		multiplier = 2
-	}
-
-	return []scalars.ScalarValue{
-		scalars.ScalarValue{
-			WallTime: time.Now(),
-			Step:     1,
-			Value:    float64(multiplier * 1),
-		},
-		scalars.ScalarValue{
-			WallTime: time.Now().Add(time.Second),
-			Step:     2,
-			Value:    float64(multiplier * 3),
-		},
-		scalars.ScalarValue{
-			WallTime: time.Now().Add(2 * time.Second),
-			Step:     3,
-			Value:    float64(multiplier * 4),
-		},
-	}, nil
+	return mdl.store.GetPluginData(ctx, pluginName, resource, query)
 }
 
 func main() {
-	h := handler.New(&mockDataloader{}, plugins.DefaultRegistry)
+	if len(os.Args) == 1 || os.Args[1] == "" {
+		fmt.Printf("give command the logdir as the first argument (%s path_to_logir)", os.Args[0])
+		os.Exit(1)
+	}
+
+	logdir := os.Args[1]
+
+	store := store.NewInMemStore()
+
+	dir := path.Join(logdir, "*tfevents*")
+
+	m, err := filepath.Glob(dir)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, p := range m {
+		f, err := os.Open(p)
+		if err != nil {
+			panic(err)
+		}
+
+		r := events.NewReader(f)
+
+		if err := store.Populate(r); err != nil {
+			panic(err)
+		}
+
+		f.Close()
+	}
+
+	h := handler.New(&mockDataloader{store: store}, plugins.DefaultRegistry)
 	http.Handle("/", h)
 
 	fmt.Println("Starting in :8080. Visit http://localhost:8080/")

@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// ScalarValue struct contains a single scalar value
-type ScalarValue struct {
+// Value struct contains a single scalar value
+type Value struct {
 	//wall_time, step, value
 	WallTime time.Time
 	Step     int
@@ -16,12 +16,12 @@ type ScalarValue struct {
 }
 
 // MarshalJSON marshal to Tensorboard scalar format
-func (sv *ScalarValue) MarshalJSON() ([]byte, error) {
+func (sv *Value) MarshalJSON() ([]byte, error) {
 	b := bytes.NewBuffer(nil)
 
 	b.WriteRune('[')
 
-	b.WriteString(fmt.Sprintf("%f", float64(sv.WallTime.UnixNano())/float64(1000000000)))
+	b.WriteString(fmt.Sprintf("%f", float64(sv.WallTime.UnixNano())/float64(1e9)))
 
 	b.WriteRune(',')
 

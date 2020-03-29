@@ -4,10 +4,10 @@ download_webfiles:
 	rm -rf .temp/pip_packages
 	rm -rf .temp/webfiles
 	mkdir -p .temp/pip_packages
-	cd .temp/pip_packages && pip3 download tensorboard && unzip tensorboard*.whl tensorboard/webfiles.zip
+	cd .temp/pip_packages && pip3 download tensorboard && unzip tensorboard-*.whl tensorboard/webfiles.zip
 	mkdir -p .temp/webfiles
 	unzip .temp/pip_packages/tensorboard/webfiles.zip -d .temp/webfiles
-	rm .temp/webfiles/trace_viewer_index*
+	rm -rf .temp/webfiles/trace_viewer_index*
 .PHONY: download_webfiles
 
 create_bindata_ui: download_webfiles go-bindata-assetfs
@@ -15,6 +15,10 @@ create_bindata_ui: download_webfiles go-bindata-assetfs
 	$(BINDATA_ASSETFS) -pkg "ui" -prefix ".temp/webfiles" -o ui/tensorboard.go .temp/webfiles
 .PHONY: create_bindata_ui
 
+
+generate_testdata:
+	rm -Rf testdata/tfevents/*tfevents*
+	python3 scripts/generate_testdata.py
 
 # find or download go-bindata-assetfs 
 # download go-bindata-assetfs  if necessary
